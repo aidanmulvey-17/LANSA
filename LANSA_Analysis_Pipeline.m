@@ -6,7 +6,7 @@
 % Spectrolaminar Motif".
 %
 % Inputs
-%   LAP_pub_data.mat         Cytoarchitecture (included): laminar density of
+%   LANSA_processed_cyto.mat         Cytoarchitecture (included): laminar density of
 %                            PV, CB, CR and NG cells in 11 areas, in the
 %                            standardized laminar space (21 bins), and the
 %                            laminar boundaries of each area.
@@ -23,7 +23,6 @@
 %    7. PLSR with leave-one-area-out CV            Figure 5
 %    8. PLSR on frequency bands                    Figure S5
 %    9. Schizophrenia perturbation                 Figure 6
-%   10. Interactive model editor (optional)
 %
 % Requirements: MATLAB R2021a or later, Statistics and Machine Learning Toolbox.
 
@@ -31,7 +30,6 @@ clc; clear; close all;
 repo_dir = fileparts(mfilename('fullpath'));
 addpath(fullfile(repo_dir, 'functions'));
 
-RUN_INTERACTIVE_EDITOR = true;   % section 10 opens an interactive window
 N_PERMS      = 5000;             % permutations for all permutation tests
 N_BOOTSTRAPS = 5000;             % bootstrap resamples for PCA stability
 n_components = 4;                % PLSR components
@@ -814,60 +812,3 @@ title('Frequency-Wise Change in Power');
 xlabel('Frequency (Hz)');
 ylabel('% Change in Power');
 styleAxes(gca);
-
-%% 10. Interactive Model Editor
-% Drag points to reshape the prototypical density profiles, or tick the
-% checkbox to apply the schizophrenia-reported densities, then press Submit.
-% The control and edited prototypical cortex are passed through each area's
-% model (as in section 9); variability is across the 11 area models.
-if RUN_INTERACTIVE_EDITOR
-    user_adjusted_anatomy = cellDensityPlotEditor(proto_anatomy, kd_anatomy, standardEdges, mean_layer_bounds, cell_types);
-
-    perc_change_areas = zeros(num_areas, Q);
-    for a = 1:num_areas
-        beta_weight = beta_by_area(:, :, a);
-        Y_reg = (beta_weight(1, :) + buildFeatureMatrix(proto_anatomy, ref) * beta_weight(2:end, :)) .* sigma_ephys + mu_ephys;
-        Y_adj = (beta_weight(1, :) + buildFeatureMatrix(user_adjusted_anatomy, ref) * beta_weight(2:end, :)) .* sigma_ephys + mu_ephys;
-        perc_change_areas(a, :) = (mean(Y_adj, 1) - mean(Y_reg, 1)) ./ mean(Y_reg, 1) * 100;
-    end
-    p_editor = ones(1, Q);
-    if any(perc_change_areas(:) ~= 0)
-        for f = 1:Q
-            p_editor(f) = signrank(perc_change_areas(:, f));
-        end
-    end
-    mean_curve = mean(perc_change_areas, 1);
-    sem_curve  = std(perc_change_areas, 0, 1) / sqrt(num_areas);
-
-    figure('Color', 'w');
-    sgtitle('In-silico Model (User-Adjusted Cytoarchitecture)');
-    subplot(1, 4, 1);
-    hold on;
-    for i = 1:num_cells
-        plot(standardEdges, rel_proto(:, i), 'Color', cell_colors(i, :), 'LineWidth', 2, 'DisplayName', [cell_types{i} ' Normal']);
-        plot(standardEdges, user_adjusted_anatomy(:, i) ./ max(proto_anatomy(:, i)), '--', 'Color', cell_colors(i, :), ...
-            'LineWidth', 2, 'DisplayName', [cell_types{i} ' Adjusted']);
-    end
-    set(gca, 'view', [90 90]);
-    xline(internal_layers, '--', 'HandleVisibility', 'off');
-    text(midpoints, 0.05 * ones(size(midpoints)), layer_labels, 'FontWeight', 'bold');
-    legend('Location', 'southeast');
-    xlabel('Cortical Position from L4');
-    ylabel('Relative Density');
-    styleAxes(gca);
-
-    subplot(1, 4, 2:4);
-    hold on;
-    plotShaded(Y_FREQ_Hz, mean_curve, sem_curve, [0.2 0.2 0.8]);
-    yline(0, '-k', 'HandleVisibility', 'off');
-    xline(freq_boundaries, '--', 'HandleVisibility', 'off');
-    plot_sig = nan(1, Q);
-    plot_sig(p_editor < 0.05) = max(mean_curve + sem_curve) + 0.1 * max(abs(mean_curve) + sem_curve);
-    plot(Y_FREQ_Hz, plot_sig, 'k-', 'LineWidth', 5, 'HandleVisibility', 'off');
-    xlim([0 Q]);
-    set(gca, 'XTick', 0:10:Q);
-    title('Frequency-Wise Change in Power (bar: p < 0.05)');
-    xlabel('Frequency (Hz)');
-    ylabel('% Change in Power');
-    styleAxes(gca);
-end
