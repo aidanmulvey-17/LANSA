@@ -10,8 +10,7 @@
 %                            PV, CB, CR and NG cells in 11 areas, in the
 %                            standardized laminar space (21 bins), and the
 %                            laminar boundaries of each area.
-%   spectrolaminar_data.mat  Spectrolaminar (LFP) data (NOT included; must be
-%                            added from Mendoza-Halliday et al., 2024).
+%   spectrolaminar_data.mat  Spectrolaminar (LFP) data.
 %
 % Sections (manuscript figures)
 %    1. Data preparation
@@ -35,20 +34,8 @@ N_BOOTSTRAPS = 5000;             % bootstrap resamples for PCA stability
 n_components = 4;                % PLSR components
 
 %% 1. Data preparation
-% Spectrolaminar data are not distributed with this repository.
-slm_file = fullfile(repo_dir, 'spectrolaminar_data.mat');
-if ~isfile(slm_file)
-    error('LANSA:missingSpectrolaminarData', ['Spectrolaminar data not found.\n' ...
-        'The spectrolaminar (LFP) data are not included in this repository and must be added ' ...
-        'from Mendoza-Halliday et al. (2024), Nat Neurosci 27, 547-560, ' ...
-        'https://doi.org/10.1038/s41593-023-01554-7.\n' ...
-        'Save them as %s with the variable ephys_data: relative power, ' ...
-        '21 laminar bins x 150 frequencies (1-150 Hz) x 11 areas, in the standardized laminar ' ...
-        'space (standard_edges) and area order (included_areas) of LAP_pub_data.mat.'], slm_file);
-end
-
+slm = load(fullfile(repo_dir, 'spectrolaminar_data.mat'));
 pub = load(fullfile(repo_dir, 'LANSA_processed_cyto.mat'));
-slm = load(slm_file);
 
 included_areas = pub.included_areas;     % V1 V3 V4 MT MST LIP TEO PMD 7A 8A PFC
 cell_types     = pub.cell_types;         % PV CB CR NG
